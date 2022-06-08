@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 #define MAX 100
 #define PORT 8080
@@ -16,48 +17,63 @@
 void chat_func(int connfd)
 {
 	char buff[MAX];
-	int n;
-	
-	// infinite loop for chat
-	
-	while(1) {
-	
-		bzero(buff, MAX);	// erases the given mem with zero bytes
+	int flag = 1;
 
-		// read the message from client and copy it in buffer
-		
-		read(connfd, buff, sizeof(buff));
-		
-		// print buffer which contains the client contents
-		
-		printf("\nFrom client: %s\nTo client : ", buff);
-		
-		bzero(buff, MAX);
-		n = 0;
-		
-		// copy server message in the buffer
-		
-		while ((buff[n++] = getchar()) != '\n')
-			;
+	printf("\n************ Server *************\n\n");
 
-		// send that buffer to client
-		
-		write(connfd, buff, sizeof(buff));
+	while(1) 
+	{
+		while(flag == 1)
+		{
+			memset(buff, '\0', MAX);
+			
+			if((read(connfd, buff, MAX)) == -1)
+			{
+				printf("failed to read from client \n");
+				close(connfd);
+				exit(0);
+			}
 
-		// if msg is "bye", exit the application
-		
-		if (!strncmp("bye", buff, 3)) {
-			printf("Server stopped ...\n");
-			break;
+			if(strlen(buff) == 1)
+			{
+				flag = 0;
+				break;
+			}
+
+			printf("\nClient : %s", buff);
+
 		}
+
+		while(flag == 0)
+		{
+			memset(buff, '\0', MAX);
+			
+			printf("\nServer : ");
+			
+			int i=0;
+			while((buff[i++] = getchar()) != '\n')
+				;
+
+			if((write(connfd, buff, MAX)) == -1)
+			{
+				printf("failed to write \n");
+				close(connfd);
+				exit(0);
+			}
+
+			if(strlen(buff) == 1)
+			{
+				flag = 1;
+			}
+		}			
 	}
 }
 
 
 int main()
 {
-	int sockfd, connfd, len;
-	
+	int sockfd, connfd;
+	socklen_t len;	
 	struct sockaddr_in servaddr, cli;
 
 	// socket create and verification
@@ -65,12 +81,13 @@ int main()
 	
 	if (sockfd == -1) {
 		printf("socket creation failed...\n");
+		close(sockfd);
 		exit(0);
 	}
 	else
 		printf("Socket successfully created..\n");
 		
-	bzero(&servaddr, sizeof(servaddr));
+	memset(&servaddr, '\0', sizeof(servaddr));
 
 	// assign IP, PORT
 	servaddr.sin_family = AF_INET;
@@ -80,6 +97,7 @@ int main()
 	// Binding newly created socket to given IP and verification
 	if ((bind(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr))) != 0) {
 		printf("socket bind failed...\n");
+		close(sockfd);
 		exit(0);
 	}
 	else
@@ -88,6 +106,7 @@ int main()
 	// server listens
 	if ((listen(sockfd, 5)) != 0) {
 		printf("Listen failed...\n");
+		close(sockfd);
 		exit(0);
 	}
 	else
@@ -99,7 +118,9 @@ int main()
 	connfd = accept(sockfd, (struct sockaddr*)&cli, &len);
 	
 	if (connfd < 0) {
+		
 		printf("server accept failed...\n");
+		close(sockfd);
 		exit(0);
 	}
 	else
@@ -111,4 +132,3 @@ int main()
 	// After chatting close the socket
 	close(sockfd);
 }
-
