@@ -5,6 +5,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <unistd.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 
 #define MAX 100
 #define PORT 8080
@@ -14,43 +18,63 @@
 void chat_func(int sockfd)
 {
 	char buff[MAX];	// buff to enter the message that we need to send
-	int n;
-	
+	int flag = 0;
+
+	memset(buff, '\0', MAX);	
+	printf("\n************ Client *************\n");
+		
 	while(1)
 	{
-		// clear the buffer "buff"
-		bzero(buff, sizeof(buff));
+		while(flag == 0)
+		{
+			memset(buff, '\0', MAX);	
+			
+			printf("\nClient : ");
+			
+			int i=0;
+			while((buff[i++] = getchar()) != '\n')
+				;
+
+			if((write(sockfd, buff, sizeof(buff))) == -1)
+			{
+				printf("failed to write data");
+				close(sockfd);
+				exit(0);
+			}
+			
+			if(strlen(buff) == 1)
+			{
+				flag = 1;
+			}
+
+		}// while end write
 		
-		printf("\nEnter msg : ");
-		n = 0;
-		
-		// take input in buff
-		while((buff[n++] = getchar()) != '\n')
-			;
-		
-		// write to buffer pointed by sockfd from buff 
-		write(sockfd, buff, sizeof(buff));
-		
-		// clear the buffer 
-		bzero(buff, sizeof(buff));
-		
-		// get data from buffer pointed by sockfd
-		read(sockfd, buff, sizeof(buff));
-		
-		printf("\nFrom Server : %s", buff);
-		
-		// enter "bye" to exit the chat
-		if ((strncmp(buff, "bye", 3)) == 0) {
-			printf("\nChat Exited...\n");
-			break;
+		while(flag == 1)
+		{
+			memset(buff, '\0', MAX);
+
+			if((read(sockfd, buff, sizeof(buff))) == -1)
+			{
+				printf("failed to read data\n");
+				close(sockfd);
+				exit(0);
+			}
+						
+			if (strlen(buff) == 1)
+			{
+				flag = 0;
+				break;
+			}
+
+			printf("\nServer : %s", buff);
 		}
 	}
 }
 
 int main()
 {
-	int sockfd, connfd;
-	struct sockaddr_in servaddr, cli;
+	int sockfd;
+	struct sockaddr_in servaddr;
 
 	// socket create and verification
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -85,4 +109,3 @@ int main()
 	// close the socket
 	close(sockfd);
 }
-
