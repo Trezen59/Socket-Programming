@@ -38,9 +38,7 @@ void chat_func(int connfd)
 				close(connfd);
 				exit(0);
 			}
-
-
-
+				
 			// read data from buffer
 			if((read(connfd, buff, MAX)) == -1)
 			{
@@ -59,7 +57,7 @@ void chat_func(int connfd)
 
 
 
-			printf("buffer length = %d\n", *len);
+			printf("bffer length = %d\n", *len);
 			printf("\nClient : %s", buff);
 			
 			if(!strncmp("bye", buff,  3))
@@ -81,6 +79,23 @@ void chat_func(int connfd)
 				;
 			
 			len = &i;
+			if((*len) >= MAX)
+			{
+				printf("message size = %d\n", *len);
+				printf("\nMsg size exceeded");
+				memset(buff, '\0', MAX);
+			}
+			else
+			{
+				printf("buffer len = %d\n", *len);
+				if((write(connfd, len, sizeof(len))) == -1)
+				{
+					printf("failed to write len");
+					close(connfd);
+					exit(0);
+				}
+
+			}
 
 			//check boundary condition
 			if((write(connfd, len, sizeof(len))) == -1)
